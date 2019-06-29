@@ -1,3 +1,4 @@
+from aes import AES
 from md5 import MD5
 import hashlib
 
@@ -20,3 +21,11 @@ def test_md5(phrase):
 
 print("Testing MD5")
 print(f"{sum([test_md5(phrase) for phrase in test_phrases])}/{len(test_phrases)} tests successful")
+
+
+print("Testing AES")
+assert AES.mult(0x57, 0x83) == 0xC1, "Issue with multiplication function, {57} . {83} = {C1}"
+assert AES.xtime(0x57, 1) == 0xAE, "Issue with xtime function, xtime({57}) = {AE}"
+print("All tests successful")
+
+print(AES.encrypt("testblahedit", "tresdfhgefrtghtd"))
