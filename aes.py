@@ -43,7 +43,7 @@ class AES:
 
         # 5.1.4 - AddRoundKey() Transformation
         def AddRoundKey(s, w):
-            return [[s[r][c] ^ w[c] for c in range(4)] for r in range(4)]
+            return [[s[r][c] ^ w[c][r] for c in range(4)] for r in range(4)]
 
         def KeyExpansion(key):
             def SubWord(word):
@@ -56,22 +56,30 @@ class AES:
             def Rcon(i):
                 return [1 << i - 1, 0, 0, 0]
 
-            w = [key[i*4:(i + 1) * 4] for i in range(4)]
+            w = [key[i*4:(i + 1) * 4] for i in range(Nk)]
 
             i = Nk
             while i < Nb * (Nr + 1):
                 temp = w[i - 1]
                 if i % Nk == 0:
                     temp = AES.poly_addition(SubWord(RotWord(temp)), Rcon(i//Nk))
+                    print(f'Used poly_addition: Rcon = {Rcon(i//Nk)}')
                 elif Nk > 6 and i % Nk == 4:
                     temp = SubWord(temp)
-                w.append(AES.poly_addition(w[i - Nk], temp))
+                    print('Used SubWord()')
+                word = AES.poly_addition(w[i - Nk], temp)
+
+                w.append(word)
+                print(f'Added {word}')
                 i += 1
 
             return w
 
-        K = bytearray()
-        K.extend(map(ord, key))
+        if type(message) == bytes:
+            K = key
+        else:
+            K = bytearray()
+            K.extend(map(ord, key))
         Kl = len(K)
 
         # As defined in 3.1 - Input and Output, a key must be 128, 192 or 156 bits
@@ -85,15 +93,19 @@ class AES:
 
         w = KeyExpansion(K)
 
-        message_bytes = bytearray()
-        message_bytes.extend(map(ord, message))
-        while len(message_bytes) % 16:
-            message_bytes.extend([0])
+        if type(message) == bytes:
+            message_bytes = message
+        else:
+            message_bytes = bytearray()
+            message_bytes.extend(map(ord, message))
+            while len(message_bytes) % 16:
+                message_bytes.extend([0])
 
         output = ""
         for block_n in range(len(message_bytes) // 16):
             block = message_bytes[16 * block_n: 16 * block_n + 16]
             state = [[block[n * 4 + m] for m in range(4)] for n in range(4)]
+            state = [[state[c][r] for c in range(4)] for r in range(4)]
 
             state = AddRoundKey(state, w[0: Nb])
             for round in range(1, Nr + 1):
@@ -120,12 +132,22 @@ class AES:
         return ""
 
     @staticmethod
+    def state_to_hex(state):
+        state = [[state[c][r] for c in range(4)] for r in range(4)]
+        return ''.join([''.join([f'{state[r][c]:02x}' for c in range(4)]) for r in range(4)])
+
+    @staticmethod
+    def words_to_hex(words):
+        return ''.join([''.join([f'{words[r][c]:02x}' for c in range(4)]) for r in range(4)])
+
+    @staticmethod
     def modular_reduction(x):
         # IMP: Change this to a log calculation
         bin_digits = len(f"{x:b}")
         for i in range(bin_digits - 8):
             if (x >> bin_digits - 1 - i) % 2:
                 x = x ^ (0x11b << (bin_digits - 9 - i))
+
         return x
 
     # 4.2 Multiplication
@@ -154,7 +176,7 @@ class AES:
     @staticmethod
     def poly_addition(a, b):
         assert len(a) == 4 and len(b) == 4, "For polynomial addition, both elements need to be words of 4 bytes"
-        return [a[i] ^ b[i] for i in range(4)]
+        return [AES.modular_reduction(a[i] ^ b[i]) for i in range(4)]
 
     @staticmethod
     def poly_mult(a, b):
