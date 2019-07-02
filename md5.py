@@ -9,8 +9,11 @@ class MD5:
     @staticmethod
     def hash(message):
         # Step 1 - Append Padding Bits
-        message_bytes = bytearray()
-        message_bytes.extend(map(ord, message + chr(128)))
+        if type(message) in (bytes, bytearray):
+            message_bytes = bytearray(message)
+        else:
+            message_bytes = bytearray()
+            message_bytes.extend(map(ord, message + chr(128)))
         while len(message_bytes) % 64 != 56:
             message_bytes.extend([0])
 

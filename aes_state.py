@@ -3,7 +3,7 @@ from aes_helper import AESHelper
 
 class AESState:
     def __init__(self, byte_array, key):
-        assert type(byte_array) == bytes and len(byte_array) == 16, 'An AES State must be a byte array of length 16'
+        assert type(byte_array) in (bytes, bytearray) and len(byte_array) == 16, 'An AES State must be a byte array of length 16'
         self.array = [[byte_array[c * 4 + r] for c in range(4)] for r in range(4)]
         self.key = key
 
@@ -17,14 +17,14 @@ class AESState:
         array = []
         for c in range(4):
             array += [self.array[r][c] for r in range(4)]
-        return array
+        return bytearray(array)
 
     # 5.1.1 - SubBytes() Transformation
     def SubBytes(self):
         self.array = [[AESHelper.S_BOX[self.array[r][c]] for c in range(4)] for r in range(4)]
 
     # 5.1.2 - ShiftRows() Transformation
-    def ShiftRows(self):
+    def ShiftRows(self, inverse=False):
         self.array = [[self.array[r][(c + r) % self.key.Nb] for c in range(self.key.Nb)] for r in range(self.key.Nb)]
 
     # 5.1.3 - MixColumns() Transformation
@@ -42,3 +42,23 @@ class AESState:
     # 5.1.4 - AddRoundKey() Transformation
     def AddRoundKey(self, round):
         self.array = [[self.array[r][c] ^ self.key.array[round * 4 + c][r] for c in range(4)] for r in range(4)]
+
+    # 5.3.1 - InvShiftRows() Transformation
+    def InvShiftRows(self, inverse=False):
+        self.array = [[self.array[r][(c - r) % self.key.Nb] for c in range(self.key.Nb)] for r in range(self.key.Nb)]
+
+    # 5.3.2 - InvSubBytes() Transformation
+    def InvSubBytes(self):
+        self.array = [[AESHelper.INV_S_BOX[self.array[r][c]] for c in range(4)] for r in range(4)]
+
+    # 5.3.3 - InvMixColumns() Transformation
+    def InvMixColumns(self):
+        # This transformation is meant to be done column-wise.
+        # To allow the use of list comprehension we produce a row-wise version of the formula and then flip the array.
+        s = [[
+                AESHelper.mult(0x0e, self.array[r][c]) ^
+                AESHelper.mult(0x0b, self.array[(r + 1) % 4][c]) ^
+                AESHelper.mult(0x0d, self.array[(r + 2) % 4][c]) ^
+                AESHelper.mult(0x09, self.array[(r + 3) % 4][c])
+            for r in range(4)] for c in range(4)]
+        self.array = [[s[r][c] for r in range(4)] for c in range(4)]

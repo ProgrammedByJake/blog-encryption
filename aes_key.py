@@ -2,8 +2,8 @@ from aes_helper import AESHelper
 
 
 class AESKey:
-    def __init__(self, byte_array):
-        assert type(byte_array) == bytes and len(byte_array) in [16, 24, 32], 'An AES Key must contain 128, 192 or 256 bits'
+    def __init__(self, byte_array, inverse=False):
+        assert type(byte_array) in (bytes, bytearray) and len(byte_array) in [16, 24, 32], 'An AES Key must contain 128, 192 or 256 bits'
 
         # As defined in 5- Algorithm Specification
         Kl = len(byte_array)

@@ -40,4 +40,9 @@ print("All tests successful")
 test_message = 0x00112233445566778899aabbccddeeff.to_bytes(16, 'big')
 test_key = 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f.to_bytes(32, 'big')
 
-print(AES.encrypt(test_message, test_key))
+# C.3 AES-256 (Nk=8, Nr=14) - Working
+# test_message = 0x00112233445566778899aabbccddeeff.to_bytes(16, 'big')
+test_message = "Hello"
+test_key = 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f.to_bytes(32, 'big')
+
+print(AES.decrypt(AES.encrypt(test_message, test_key), test_key))
